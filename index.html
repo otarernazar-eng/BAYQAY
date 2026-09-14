@@ -300,8 +300,11 @@
             <div class="flex justify-between border-b border-border1 pb-3 mb-3 text-sm">
               <span class="text-text3">Орташа мән</span><span class="font-mono font-semibold" id="s1-mean">-</span>
             </div>
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between border-b border-border1 pb-3 mb-3 text-sm">
               <span class="text-text3">Ауытқу (SD)</span><span class="font-mono font-semibold" id="s1-sd">-</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-text3">Дисперсия (Var)</span><span class="font-mono font-semibold" id="s1-var">-</span>
             </div>
           </div>
           
@@ -313,8 +316,11 @@
             <div class="flex justify-between border-b border-border1 pb-3 mb-3 text-sm">
               <span class="text-text3">Орташа мән</span><span class="font-mono font-semibold" id="s2-mean">-</span>
             </div>
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between border-b border-border1 pb-3 mb-3 text-sm">
               <span class="text-text3">Ауытқу (SD)</span><span class="font-mono font-semibold" id="s2-sd">-</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-text3">Дисперсия (Var)</span><span class="font-mono font-semibold" id="s2-var">-</span>
             </div>
           </div>
         </div>
@@ -629,8 +635,8 @@
       const var1 = jStat.variance(v1, true), var2 = jStat.variance(v2, true);
       const n1 = v1.length, n2 = v2.length;
       
-      document.getElementById('s1-n').innerText = n1; document.getElementById('s1-mean').innerText = m1.toFixed(3); document.getElementById('s1-sd').innerText = sd1.toFixed(3);
-      document.getElementById('s2-n').innerText = n2; document.getElementById('s2-mean').innerText = m2.toFixed(3); document.getElementById('s2-sd').innerText = sd2.toFixed(3);
+      document.getElementById('s1-n').innerText = n1; document.getElementById('s1-mean').innerText = m1.toFixed(3); document.getElementById('s1-sd').innerText = sd1.toFixed(3); document.getElementById('s1-var').innerText = var1.toFixed(3);
+      document.getElementById('s2-n').innerText = n2; document.getElementById('s2-mean').innerText = m2.toFixed(3); document.getElementById('s2-sd').innerText = sd2.toFixed(3); document.getElementById('s2-var').innerText = var2.toFixed(3);
       
       const tStat = (m1 - m2) / Math.sqrt((var1/n1) + (var2/n2));
       const df = Math.pow((var1/n1) + (var2/n2), 2) / ( Math.pow(var1/n1, 2)/(n1-1) + Math.pow(var2/n2, 2)/(n2-1) );
