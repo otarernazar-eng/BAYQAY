@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BAYTAQ - Экологиялық аналитика</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: "#f8fafc",
+            surface1: "#ffffff",
+            surface2: "#f1f5f9",
+            text1: "#0f172a",
+            text2: "#334155",
+            text3: "#64748b",
+            text4: "#94a3b8",
+            border1: "#e2e8f0",
+            border2: "#cbd5e1",
+            primary: "#0284c7",
+            primaryHover: "#0369a1",
+            secondary: "#1e3a8a",
+            danger: "#ef4444",
+            warning: "#f59e0b",
+            success: "#10b981",
+          },
+          fontFamily: {
+            sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+            mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+          },
+          borderRadius: { lg: "16px", md: "12px", sm: "8px" },
+          keyframes: {
+            "fade-in-up": { from: { opacity: "0", transform: "translateY(20px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+          },
+          animation: {
+            "fade-in-up": "fade-in-up 0.5s ease-out forwards",
+          },
+        },
+      },
+    }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jstat/1.9.6/jstat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://unpkg.com/imask"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
+
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .font-mono { font-family: "JetBrains Mono", monospace !important; }
+    }
+    
+    html { scroll-behavior: smooth; }
+    body {
+      background: #f8fafc; color: #0f172a; font-family: "Inter", sans-serif;
+      margin: 0; display: flex; justify-content: center; height: 100vh; overflow: hidden;
+    }
+    
+    body::before {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+      background-size: 24px 24px; opacity: 0.4;
+    }
+
+    .app-container { width: 100%; max-width: 480px; position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; background: #ffffff; box-shadow: 0 0 40px rgba(0,0,0,0.05); }
+    
+    .screen { display: none; flex-direction: column; flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; }
+    .screen.active { display: flex; }
+
+    .btn {
+      display: inline-flex; justify-content: center; align-items: center; gap: 8px;
+      padding: 14px 24px; font-size: 15px; font-weight: 600;
+      background: #0284c7; color: #ffffff;
+      border-radius: 12px; transition: all 200ms; cursor: pointer; border: none;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+    }
+    .btn:hover { background: #0369a1; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(2, 132, 199, 0.3); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 16px; }
+    .card-interactive { cursor: pointer; transition: all 200ms ease-out; }
+    .card-interactive:hover { border-color: #93c5fd; background: #f0f9ff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 12px; border-radius: 8px;
+      background: #f1f5f9; color: #475569; font-weight: 500; cursor: pointer; transition: all 200ms; border: 1px solid transparent;
+    }
+    .chip:hover { background: #e2e8f0; }
+    .chip.active { background: #eff6ff; color: #0284c7; border-color: #bfdbfe; font-weight: 600; }
+
+    .input-field {
+      width: 100%; background: #ffffff; border: 1px solid #cbd5e1;
+      color: #0f172a; padding: 12px 16px; border-radius: 12px;
+      font-size: 14px; outline: none; transition: all 200ms ease;
+    }
+    .input-field:focus { border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1); }
+
+    .header { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid #f1f5f9; }
+    .content-area { flex: 1; padding: 24px; position: relative; z-index: 10; }
+    
+    .bottom-nav { background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-top: 1px solid #e2e8f0; display: flex; padding-bottom: max(16px, env(safe-area-inset-bottom)); padding-top: 12px; position: sticky; bottom: 0; z-index: 20; }
+    .nav-item { flex: 1; text-align: center; color: #94a3b8; font-size: 11px; font-weight: 600; font-family: "Inter", sans-serif; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: color 200ms; }
+    .nav-item:hover, .nav-item.active { color: #0284c7; }
+
+    .upload-zone { border: 2px dashed #cbd5e1; border-radius: 16px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 200ms; background: #f8fafc; }
+    .upload-zone:hover, .upload-zone.dragover { border-color: #0284c7; background: #f0f9ff; }
+
+    table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13px; }
+    th { padding: 12px 10px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; cursor: pointer; }
+    th:hover { color: #0284c7; }
+    td { padding: 14px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+    .anomaly-row { background: #fef2f2; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    .modal-overlay { position: absolute; inset:0; background: rgba(15, 23, 42, 0.6); z-index: 100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .modal-content { background: #ffffff; width: 85%; border-radius: 20px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Modal -->
+    <div id="infoModal" class="modal-overlay">
+      <div class="modal-content animate-fade-in-up">
+        <div class="text-primary font-bold text-sm mb-2" id="modalTitle">Info</div>
+        <div class="text-text2 text-sm leading-relaxed mb-6" id="modalBody">...</div>
+        <button class="btn w-full" onclick="closeModal()">Жабу (Close)</button>
+      </div>
+    </div>
+
+    <!-- Screen 1: Indicators (Аналитика) -->
+    <div id="screen-indicators" class="screen active">
+      <div class="header">
+        <div class="font-bold text-text1 tracking-tight text-lg">Көрсеткіштер</div>
+        <button onclick="showInfo('Ақпарат', 'BAYTAQ веб-сервисі Каспий теңізінің экологиялық параметрлерін статистикалық бағалауға арналған.')" class="text-primary hover:text-primaryHover transition text-xl"><i class="fa-solid fa-circle-info"></i></button>
+      </div>
+      
+      <div class="content-area">
+        <div class="font-semibold text-text4 text-[11px] mb-4 uppercase tracking-wider">Көрсеткішті таңдаңыз</div>
+        
+        <div class="flex flex-col gap-3">
+          <div class="card card-interactive flex items-center p-4 animate-fade-in-up" style="animation-delay: 50ms;" onclick="selectIndicatorApi('Температура (°C)')">
+            <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mr-4 text-primary text-lg"><i class="fa-solid fa-temperature-half"></i></div>
+            <div class="flex-1 font-semibold text-[15px] text-text1">Температура (°C)</div>
+            <div class="p-2 cursor-pointer text-text4 hover:text-primary transition" onclick="event.stopPropagation(); showNorms('Температура (°C)')"><i class="fa-solid fa-circle-info"></i></div>
+          </div>
+          <div class="card card-interactive flex items-center p-4 animate-fade-in-up" style="animation-delay: 100ms;" onclick="selectIndicatorApi('pH')">
+            <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mr-4 text-primary font-mono text-[13px] font-bold">pH</div>
+            <div class="flex-1 font-semibold text-[15px] text-text1">Сутектік көрсеткіш (pH)</div>
+            <div class="p-2 cursor-pointer text-text4 hover:text-primary transition" onclick="event.stopPropagation(); showNorms('pH')"><i class="fa-solid fa-circle-info"></i></div>
+          </div>
+          <div class="card card-interactive flex items-center p-4 animate-fade-in-up" style="animation-delay: 150ms;" onclick="selectIndicatorApi('Еріген оттегі (mg/L)')">
+            <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mr-4 text-primary font-mono text-[13px] font-bold">O₂</div>
+            <div class="flex-1 font-semibold text-[15px] text-text1">Еріген оттегі (mg/L)</div>
+            <div class="p-2 cursor-pointer text-text4 hover:text-primary transition" onclick="event.stopPropagation(); showNorms('Еріген оттегі (mg/L)')"><i class="fa-solid fa-circle-info"></i></div>
+          </div>
+          <div class="card card-interactive flex items-center p-4 animate-fade-in-up" style="animation-delay: 200ms;" onclick="selectIndicatorApi('Нитраттар (mg/L)')">
+            <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mr-4 text-primary text-lg"><i class="fa-solid fa-leaf"></i></div>
+            <div class="flex-1 font-semibold text-[15px] text-text1">Нитраттар (mg/L)</div>
+            <div class="p-2 cursor-pointer text-text4 hover:text-primary transition" onclick="event.stopPropagation(); showNorms('Нитраттар (mg/L)')"><i class="fa-solid fa-circle-info"></i></div>
+          </div>
+          <div class="card card-interactive flex items-center p-4 animate-fade-in-up" style="animation-delay: 250ms;" onclick="selectIndicatorApi('Фосфаттар (mg/L)')">
+            <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mr-4 text-primary text-lg"><i class="fa-solid fa-flask"></i></div>
+            <div class="flex-1 font-semibold text-[15px] text-text1">Фосфаттар (mg/L)</div>
+            <div class="p-2 cursor-pointer text-text4 hover:text-primary transition" onclick="event.stopPropagation(); showNorms('Фосфаттар (mg/L)')"><i class="fa-solid fa-circle-info"></i></div>
+          </div>
+          <div class="card card-interactive flex items-center p-4 animate-fade-in-up" style="animation-delay: 300ms;" onclick="selectIndicatorApi('Мұнай өнімдері (mg/L)')">
+            <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mr-4 text-primary text-lg"><i class="fa-solid fa-droplet"></i></div>
+            <div class="flex-1 font-semibold text-[15px] text-text1">Мұнай өнімдері (mg/L)</div>
+            <div class="p-2 cursor-pointer text-text4 hover:text-primary transition" onclick="event.stopPropagation(); showNorms('Мұнай өнімдері (mg/L)')"><i class="fa-solid fa-circle-info"></i></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bottom-nav">
+        <div class="nav-item active"><i class="fa-solid fa-chart-simple text-[20px] mb-1"></i> <span>Аналитика</span></div>
+        <div class="nav-item" onclick="nav('screen-upload')"><i class="fa-solid fa-cloud-arrow-up text-[20px] mb-1"></i> <span>Деректер салу</span></div>
+        <div class="nav-item" onclick="nav('screen-history')"><i class="fa-solid fa-clock-rotate-left text-[20px] mb-1"></i> <span>Архив</span></div>
+      </div>
+    </div>
+
+    <!-- Screen 2: API Config -->
+    <div id="screen-groups" class="screen">
+      <div class="header">
+        <button onclick="nav('screen-indicators')" class="text-text3 hover:text-text1 transition"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="font-bold tracking-tight text-lg">Баптаулар (Config)</div>
+        <div class="w-5"></div>
+      </div>
+      
+      <div class="content-area pt-4 animate-fade-in-up">
+        <div class="font-semibold text-text4 text-[11px] mb-3 uppercase tracking-wider">1-Топ: Негізгі аймақ</div>
+        <div class="card p-4">
+          <div class="relative mb-4">
+            <select id="group1-loc" class="input-field appearance-none cursor-pointer font-medium">
+              <option value="Порт аймағы (Ақтау)">Порт аймағы (Ақтау)</option>
+              <option value="Демалыс аймағы (Ақтау)">Демалыс аймағы (Ақтау)</option>
+            </select>
+            <i class="fa-solid fa-chevron-down absolute right-4 top-[14px] text-text4 text-xs pointer-events-none"></i>
+          </div>
+          <div class="relative">
+            <input type="text" id="group1-date" value="01.01.2026 - 31.12.2026" class="input-field font-mono text-sm" placeholder="DD.MM.YYYY - DD.MM.YYYY">
+            <i class="fa-regular fa-calendar absolute right-4 top-[14px] text-text4 cursor-pointer hover:text-primary transition" id="group1-calendar"></i>
+          </div>
+        </div>
+        
+        <div class="font-semibold text-text4 text-[11px] mb-3 mt-6 uppercase tracking-wider">2-Топ: Салыстыру аймағы</div>
+        <div class="card p-4">
+          <div class="relative mb-4">
+            <select id="group2-loc" class="input-field appearance-none cursor-pointer font-medium">
+              <option value="Демалыс аймағы (Ақтау)" selected>Демалыс аймағы (Ақтау)</option>
+              <option value="Порт аймағы (Ақтау)">Порт аймағы (Ақтау)</option>
+            </select>
+            <i class="fa-solid fa-chevron-down absolute right-4 top-[14px] text-text4 text-xs pointer-events-none"></i>
+          </div>
+          <div class="relative">
+            <input type="text" id="group2-date" value="01.01.2026 - 31.12.2026" class="input-field font-mono text-sm" placeholder="DD.MM.YYYY - DD.MM.YYYY">
+            <i class="fa-regular fa-calendar absolute right-4 top-[14px] text-text4 cursor-pointer hover:text-primary transition" id="group2-calendar"></i>
+          </div>
+        </div>
+        
+        <button id="loadBtn" class="btn w-full mt-8" onclick="loadDataApi()">
+          Деректерді жүктеу (Fetch)
+        </button>
+      </div>
+    </div>
+
+    <!-- Screen 3: API Dashboard -->
+    <div id="screen-dashboard-api" class="screen">
+      <div class="header">
+        <button onclick="nav('screen-groups')" class="text-text3 hover:text-text1 transition"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="font-bold tracking-tight text-lg truncate flex-1 text-center indicator-title">...</div>
+        <button onclick="saveReport()" class="text-primary hover:text-primaryHover transition"><i class="fa-regular fa-bookmark"></i></button>
+      </div>
+      
+      <div class="flex px-4 py-3 gap-2 overflow-x-auto border-b border-border1 bg-surface2/50 sticky top-[65px] z-10 no-scrollbar">
+        <button id="nav-data" class="chip active" onclick="showApiTab('data')">Деректер</button>
+        <button id="nav-stats" class="chip" onclick="showApiTab('stats')">Статистика</button>
+        <button id="nav-test" class="chip" onclick="showApiTab('test')">AI / t-Test</button>
+        <button id="nav-charts" class="chip" onclick="showApiTab('charts')">График</button>
+      </div>
+      
+      <div class="content-area pt-4" id="api-content">
+        <!-- Tab: Data -->
+        <div id="tab-data" class="animate-fade-in-up">
+          <div class="flex justify-between items-end mb-4 px-2">
+             <div class="font-mono text-text4 text-[11px]" id="api-count-text">n = 0</div>
+             <div class="flex gap-2">
+               <button id="pill-top1" class="chip active border-border2" onclick="switchApiTable(1)">1-Топ</button>
+               <button id="pill-top2" class="chip bg-transparent border-border1 text-text4" onclick="switchApiTable(2)">2-Топ</button>
+             </div>
+          </div>
+          
+          <div id="table-container-1" class="card p-0 overflow-x-auto">
+            <table>
+              <thead><tr>
+                <th onclick="sortApiTable(1, 'index')">#<i class="fa-solid fa-sort ml-1 opacity-50"></i></th>
+                <th onclick="sortApiTable(1, 'date')">Күні<i class="fa-solid fa-sort ml-1 opacity-50"></i></th>
+                <th onclick="sortApiTable(1, 'val')">Мәні<i class="fa-solid fa-sort ml-1 opacity-50"></i></th>
+              </tr></thead>
+              <tbody id="tbody-top1"></tbody>
+            </table>
+          </div>
+          
+          <div id="table-container-2" class="card p-0 overflow-x-auto hidden">
+            <table>
+              <thead><tr>
+                <th onclick="sortApiTable(2, 'index')">#<i class="fa-solid fa-sort ml-1 opacity-50"></i></th>
+                <th onclick="sortApiTable(2, 'date')">Күні<i class="fa-solid fa-sort ml-1 opacity-50"></i></th>
+                <th onclick="sortApiTable(2, 'val')">Мәні<i class="fa-solid fa-sort ml-1 opacity-50"></i></th>
+              </tr></thead>
+              <tbody id="tbody-top2"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Stats -->
+        <div id="tab-stats" class="hidden animate-fade-in-up">
+          <div class="font-semibold text-text4 text-[11px] mb-3 uppercase tracking-wider">1-Топ / Негізгі</div>
+          <div class="card p-5 mb-6">
+            <div class="flex justify-between border-b border-border1 pb-3 mb-3 text-sm">
+              <span class="text-text3">Таңдама (n)</span><span class="font-mono font-semibold" id="s1-n">-</span>
+            </div>
+            <div class="flex justify-between border-b border-border1 pb-3 mb-3 text-sm">
+              <span class="text-text3">Орташа мән</span><span class="font-mono font-semibold" id="s1-mean">-</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-text3">Ауытқу (SD)</span><span class="font-mono font-semibold" id="s1-sd">-</span>
+            </div>
+          </div>
+          
+          <div class="font-semibold text-text4 text-[11px] mb-3 uppercase tracking-wider">2-Топ / Салыстыру</div>
+          <div class="card p-5">
+            <div class="flex justify-between border-b border-border1 pb-3 mb-3 text-sm">
+              <span class="text-text3">Таңдама (n)</span><span class="font-mono font-semibold" id="s2-n">-</span>
+            </div>
+            <div class="flex justify-between border-b border-border1 pb-3 mb-3 text-sm">
+              <span class="text-text3">Орташа мән</span><span class="font-mono font-semibold" id="s2-mean">-</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-text3">Ауытқу (SD)</span><span class="font-mono font-semibold" id="s2-sd">-</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tab: Test & ML -->
+        <div id="tab-test" class="hidden animate-fade-in-up">
+          <div class="font-semibold text-text4 text-[11px] mb-3 uppercase tracking-wider">t-Test (Стьюдент критерийі)</div>
+          <div class="card p-5">
+            <div class="flex justify-between border-b border-border1 pb-3 mb-3 text-sm">
+              <span class="text-text3">t-статистика</span><span class="font-mono font-semibold" id="test-t">-</span>
+            </div>
+            <div class="flex justify-between border-b border-border1 pb-3 mb-3 text-sm">
+              <span class="text-text3">p-value</span><span class="font-mono font-bold text-primary" id="test-p">-</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-text3">Cohen's d</span><span class="font-mono font-semibold" id="test-d">-</span>
+            </div>
+          </div>
+          <div class="mt-4 mb-8 text-sm leading-relaxed text-text2 border-l-4 border-primary pl-4 bg-blue-50/50 p-3 rounded-r-lg" id="test-conclusion"></div>
+
+          <div class="font-semibold text-text4 text-[11px] mb-3 uppercase tracking-wider mt-8"><i class="fa-solid fa-brain text-secondary mr-1"></i> AI Болжам</div>
+          <div class="card p-5" id="ai-forecast-content">Талдануда...</div>
+        </div>
+        
+        <!-- Tab: Charts -->
+        <div id="tab-charts" class="hidden animate-fade-in-up">
+          <div class="font-semibold text-text4 text-[11px] mb-3 uppercase tracking-wider text-center">Үлестірім (Box-plot)</div>
+          <div class="card p-2">
+             <div id="boxplot" style="width: 100%; height: 350px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 4: Upload CSV -->
+    <div id="screen-upload" class="screen">
+      <div class="header">
+        <div class="font-bold text-text1 text-lg">Деректер салу (CSV)</div>
+        <div class="w-5"></div>
+      </div>
+      
+      <div class="content-area animate-fade-in-up">
+        <p class="text-sm text-text3 mb-6 leading-relaxed">
+          Теңіз суының сапасы туралы мәліметтері бар <b>.csv</b> файлын жүктеңіз. Жүйе бағандарды автоматты түрде тауып, әр көрсеткіш үшін аналитика жасайды.
+        </p>
+        <div class="upload-zone" id="drop-zone" onclick="document.getElementById('csv-file').click()">
+          <i class="fa-solid fa-file-csv text-5xl text-primary mb-4 opacity-80"></i>
+          <h3 class="font-semibold text-text1 mb-2">Файлды осы жерге тастаңыз</h3>
+          <p class="text-xs text-text4 font-mono">немесе басып таңдаңыз (тек .csv)</p>
+          <input type="file" id="csv-file" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
+        </div>
+        <div id="upload-status" class="mt-6 hidden">
+          <div class="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
+            <i class="fa-solid fa-circle-check text-xl"></i>
+            <div>
+              <div class="font-semibold" id="file-name">data.csv</div>
+              <div class="text-xs opacity-80" id="file-stats">Оқылды...</div>
+            </div>
+          </div>
+          <button class="btn w-full mt-6" onclick="generateCsvDashboard()">
+            Аналитиканы бастау <i class="fa-solid fa-chart-pie ml-2"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item" onclick="nav('screen-indicators')"><i class="fa-solid fa-chart-simple text-[20px] mb-1"></i> <span>Аналитика</span></div>
+        <div class="nav-item active"><i class="fa-solid fa-cloud-arrow-up text-[20px] mb-1"></i> <span>Деректер салу</span></div>
+        <div class="nav-item" onclick="nav('screen-history')"><i class="fa-solid fa-clock-rotate-left text-[20px] mb-1"></i> <span>Архив</span></div>
+      </div>
+    </div>
+
+    <!-- Screen 5: CSV Dashboard -->
+    <div id="screen-dashboard-csv" class="screen">
+      <div class="header">
+        <button onclick="nav('screen-upload')" class="text-text3 hover:text-text1 transition"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="font-bold text-text1 text-lg">CSV Аналитика</div>
+        <button onclick="exportToPDF('pdf-csv-area')" class="text-primary hover:text-primaryHover transition"><i class="fa-solid fa-file-pdf"></i></button>
+      </div>
+      
+      <!-- Indicators Horizontal Scroll -->
+      <div class="flex px-4 py-3 gap-2 overflow-x-auto border-b border-border1 bg-surface2/50 sticky top-[65px] z-10 no-scrollbar" id="indicator-tabs">
+        <!-- Generated by JS -->
+      </div>
+      
+      <div class="content-area pt-6" id="pdf-csv-area">
+        <h2 class="text-2xl font-bold text-text1 mb-6 text-center" id="current-csv-indicator-title">...</h2>
+        
+        <!-- AI Analysis Card -->
+        <div class="card bg-white border-l-4 border-l-primary shadow-md" id="ai-card">
+          <div class="flex items-center gap-2 mb-3 text-secondary font-bold text-xs uppercase tracking-wider">
+            <i class="fa-solid fa-robot"></i> AI Сабаптамасы
+          </div>
+          <div id="csv-ai-content" class="text-sm text-text2 leading-relaxed">
+            <i class="fa-solid fa-spinner fa-spin text-text4"></i> Талдануда...
+          </div>
+        </div>
+
+        <!-- Descriptive Stats -->
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="card p-4 flex flex-col justify-center items-center">
+            <div class="text-xs text-text4 font-semibold uppercase tracking-wider mb-1">Орташа мән</div>
+            <div class="text-xl font-mono font-bold text-text1" id="csv-stat-mean">-</div>
+          </div>
+          <div class="card p-4 flex flex-col justify-center items-center">
+            <div class="text-xs text-text4 font-semibold uppercase tracking-wider mb-1">Максимум</div>
+            <div class="text-xl font-mono font-bold text-text1" id="csv-stat-max">-</div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card p-2 mb-6">
+          <div id="csv-chart-container" style="width: 100%; height: 280px;"></div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="card p-0 overflow-hidden mb-8">
+          <div class="px-4 py-3 border-b border-border1 bg-surface2 flex justify-between items-center">
+            <span class="font-semibold text-sm text-text1">Деректер кестесі</span>
+            <span class="chip bg-white border-border2 text-text3 font-mono text-[10px]" id="csv-table-count">n=0</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Күні (Date)</th>
+                  <th>Мәні (Value)</th>
+                  <th>Статус</th>
+                </tr>
+              </thead>
+              <tbody id="csv-data-tbody">
+                <!-- Generated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 6: History (Архив) -->
+    <div id="screen-history" class="screen">
+      <div class="header">
+        <div class="font-bold text-text1 text-lg">Архив</div>
+        <div class="w-5"></div>
+      </div>
+      <div class="content-area pt-4" id="history-container">
+        <!-- populated by JS -->
+      </div>
+      
+      <div class="bottom-nav">
+        <div class="nav-item" onclick="nav('screen-indicators')"><i class="fa-solid fa-chart-simple text-[20px] mb-1"></i> <span>Аналитика</span></div>
+        <div class="nav-item" onclick="nav('screen-upload')"><i class="fa-solid fa-cloud-arrow-up text-[20px] mb-1"></i> <span>Деректер салу</span></div>
+        <div class="nav-item active"><i class="fa-solid fa-clock-rotate-left text-[20px] mb-1"></i> <span>Архив</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Constants & State
+    const ECOLOGICAL_NORMS = {
+      'Температура (°C)': "Температура судың гүлденуіне әсер етеді. Қалыпты жағдай мезгілге байланысты.",
+      'pH': "Сутектік көрсеткіш (pH): теңіз суы үшін қалыпты норма 8.0 - 8.5 аралығы.",
+      'Еріген оттегі (mg/L)': "Еріген оттегі балықтар үшін өте маңызды. Норма > 6 мг/л.",
+      'Нитраттар (mg/L)': "Нитраттар судың ластануын көрсетеді (ШРК ~ 9.1 мг/л).",
+      'Фосфаттар (mg/L)': "Фосфаттар аграрлық қалдықтардан пайда болады (ШРК ~ 0.05 мг/л).",
+      'Мұнай өнімдері (mg/L)': "Мұнай өнімдерінің ШРК балық шаруашылығы үшін 0.05 мг/л."
+    };
+
+    let state = {
+      apiIndicator: 'Температура (°C)',
+      apiG1Name: '', apiG2Name: '',
+      apiData1: [], apiData2: [],
+      apiSortCol: 'index', apiSortAsc: true,
+      apiStats: {}
+    };
+
+    let csvParsedData = [];
+    let csvNumericColumns = [];
+    let csvCurrentIndicator = '';
+
+    // Date pickers
+    const maskOptions = { mask: 'd.m.Y - D.M.y', blocks: { d:{mask:IMask.MaskedRange,from:1,to:31,maxLength:2},m:{mask:IMask.MaskedRange,from:1,to:12,maxLength:2},Y:{mask:IMask.MaskedRange,from:1900,to:2100,maxLength:4},D:{mask:IMask.MaskedRange,from:1,to:31,maxLength:2},M:{mask:IMask.MaskedRange,from:1,to:12,maxLength:2},y:{mask:IMask.MaskedRange,from:1900,to:2100,maxLength:4} }};
+    const imask1 = IMask(document.getElementById('group1-date'), maskOptions);
+    const imask2 = IMask(document.getElementById('group2-date'), maskOptions);
+    const fpConfig = { mode: "range", dateFormat: "d.m.Y", conjunction: " - ", locale: "ru" };
+    const fp1 = flatpickr(document.createElement('input'), { ...fpConfig, onChange: (dates, str) => imask1.value = str });
+    const fp2 = flatpickr(document.createElement('input'), { ...fpConfig, onChange: (dates, str) => imask2.value = str });
+    document.getElementById('group1-calendar').addEventListener('click', () => fp1.open());
+    document.getElementById('group2-calendar').addEventListener('click', () => fp2.open());
+
+    function parseDateStr(str) {
+      if(!str || str.length !== 23) return null;
+      const parts = str.split(' - ');
+      const [d1, m1, y1] = parts[0].split('.');
+      const [d2, m2, y2] = parts[1].split('.');
+      return { start: new Date(`${y1}-${m1}-${d1}`), end: new Date(`${y2}-${m2}-${d2}`) };
+    }
+
+    // Common UI
+    function nav(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+      if(screenId === 'screen-history') renderHistory();
+    }
+    
+    function showInfo(title, text) {
+      document.getElementById('modalTitle').innerText = title;
+      document.getElementById('modalBody').innerHTML = text;
+      document.getElementById('infoModal').style.display = 'flex';
+    }
+    function showNorms(ind) { showInfo("Мәлімет", ECOLOGICAL_NORMS[ind] || "Ақпарат жоқ"); }
+    function closeModal() { document.getElementById('infoModal').style.display = 'none'; }
+
+    // ==========================================
+    // WORKFLOW A: API (Аналитика)
+    // ==========================================
+    function selectIndicatorApi(name) {
+      state.apiIndicator = name;
+      document.querySelectorAll('.indicator-title').forEach(el => el.innerText = name);
+      nav('screen-groups');
+    }
+
+    async function loadDataApi() {
+      const g1Date = parseDateStr(imask1.value);
+      const g2Date = parseDateStr(imask2.value);
+      if(!g1Date || !g2Date) {
+        showInfo("Қате", "Күн форматы қате: DD.MM.YYYY - DD.MM.YYYY"); return;
+      }
+
+      const btn = document.getElementById('loadBtn');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Жүктелуде...';
+      btn.disabled = true;
+      
+      state.apiG1Name = document.getElementById('group1-loc').value;
+      state.apiG2Name = document.getElementById('group2-loc').value;
+      
+      try {
+        const d1s = g1Date.start.toISOString().split('T')[0];
+        const d1e = g1Date.end.toISOString().split('T')[0];
+        // Note: For demo we just pass group1's date range to both since backend handles start/end
+        const res = await fetch(`/api/data?indicator=${encodeURIComponent(state.apiIndicator)}&group1=${encodeURIComponent(state.apiG1Name)}&group2=${encodeURIComponent(state.apiG2Name)}&startDate=${d1s}&endDate=${d1e}`);
+        
+        if(!res.ok) throw new Error("API қатесі");
+        const json = await res.json();
+        
+        state.apiData1 = json.group1.map((d,i) => ({...d, index: i+1}));
+        state.apiData2 = json.group2.map((d,i) => ({...d, index: i+1}));
+        
+        document.getElementById('api-count-text').innerText = `n1=${state.apiData1.length} | n2=${state.apiData2.length}`;
+        
+        renderApiTable(1); renderApiTable(2);
+        calcApiStats();
+        fetchApiForecast();
+        
+        nav('screen-dashboard-api');
+        showApiTab('data');
+      } catch (err) {
+        showInfo("Қосылым қатесі", "Vercel API-мен байланыс үзілді.");
+      } finally {
+        btn.innerText = "Деректерді жүктеу (Fetch)";
+        btn.disabled = false;
+      }
+    }
+
+    function sortApiTable(group, col) {
+      const data = group === 1 ? state.apiData1 : state.apiData2;
+      state.apiSortAsc = state.apiSortCol === col ? !state.apiSortAsc : true;
+      state.apiSortCol = col;
+      data.sort((a,b) => {
+        let valA = col === 'val' ? parseFloat(a.value) : (col === 'index' ? a.index : a.date);
+        let valB = col === 'val' ? parseFloat(b.value) : (col === 'index' ? b.index : b.date);
+        return (valA < valB ? -1 : (valA > valB ? 1 : 0)) * (state.apiSortAsc ? 1 : -1);
+      });
+      renderApiTable(group);
+    }
+
+    function renderApiTable(group) {
+      const data = group === 1 ? state.apiData1 : state.apiData2;
+      document.getElementById(`tbody-top${group}`).innerHTML = data.slice(0, 50).map(r => { // limit for dom
+        return `<tr class="${r.isAnomaly ? 'anomaly-row' : ''}">
+          <td class="text-text4 font-mono text-xs">${r.index}</td>
+          <td class="font-mono text-xs">${r.date}</td>
+          <td class="font-bold text-text1">${r.value} ${r.isAnomaly ? `<span class="text-danger text-[9px] ml-1 uppercase">Ауытқу</span>` : ''}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function switchApiTable(tabNum) {
+      document.getElementById('pill-top1').className = `chip ${tabNum===1?'active border-border2':'bg-transparent border-border1 text-text4'}`;
+      document.getElementById('pill-top2').className = `chip ${tabNum===2?'active border-border2':'bg-transparent border-border1 text-text4'}`;
+      document.getElementById('table-container-1').classList.toggle('hidden', tabNum !== 1);
+      document.getElementById('table-container-2').classList.toggle('hidden', tabNum !== 2);
+    }
+
+    function showApiTab(tabId) {
+      ['data', 'stats', 'test', 'charts'].forEach(id => {
+        const btn = document.getElementById(`nav-${id}`);
+        btn.className = `chip ${id === tabId ? 'active' : ''}`;
+        document.getElementById(`tab-${id}`).classList.toggle('hidden', id !== tabId);
+      });
+      if(tabId === 'charts') renderApiChart();
+    }
+
+    function calcApiStats() {
+      const v1 = state.apiData1.map(d => parseFloat(d.value));
+      const v2 = state.apiData2.map(d => parseFloat(d.value));
+      if(!v1.length || !v2.length) return;
+
+      const m1 = jStat.mean(v1), m2 = jStat.mean(v2);
+      const sd1 = jStat.stdev(v1, true), sd2 = jStat.stdev(v2, true);
+      const var1 = jStat.variance(v1, true), var2 = jStat.variance(v2, true);
+      const n1 = v1.length, n2 = v2.length;
+      
+      document.getElementById('s1-n').innerText = n1; document.getElementById('s1-mean').innerText = m1.toFixed(3); document.getElementById('s1-sd').innerText = sd1.toFixed(3);
+      document.getElementById('s2-n').innerText = n2; document.getElementById('s2-mean').innerText = m2.toFixed(3); document.getElementById('s2-sd').innerText = sd2.toFixed(3);
+      
+      const tStat = (m1 - m2) / Math.sqrt((var1/n1) + (var2/n2));
+      const df = Math.pow((var1/n1) + (var2/n2), 2) / ( Math.pow(var1/n1, 2)/(n1-1) + Math.pow(var2/n2, 2)/(n2-1) );
+      const pVal = jStat.studentt.pdf(Math.abs(tStat), df) * 2;
+      const pooledSD = Math.sqrt(((n1-1)*var1 + (n2-1)*var2) / (n1+n2-2));
+      const dVal = Math.abs(m1 - m2) / pooledSD;
+
+      state.apiStats = { p: pVal.toFixed(3), d: dVal.toFixed(2) };
+      document.getElementById('test-t').innerText = tStat.toFixed(2);
+      document.getElementById('test-p').innerText = state.apiStats.p;
+      document.getElementById('test-d').innerText = state.apiStats.d;
+      
+      let html = pVal < 0.05 ? `<div class="font-bold mb-1 text-primary">p &lt; 0.05: Статистикалық маңызды айырмашылық бар.</div>` : `<div class="font-bold mb-1 text-text3">p &gt; 0.05: Айырмашылық байқалмады.</div>`;
+      html += `Эффект өлшемі (Cohen's d = ${state.apiStats.d}).`;
+      document.getElementById('test-conclusion').innerHTML = html;
+    }
+
+    async function fetchApiForecast() {
+      try {
+        const [r1, r2] = await Promise.all([
+          fetch(`/api/forecast?location=${encodeURIComponent(state.apiG1Name)}`),
+          fetch(`/api/forecast?location=${encodeURIComponent(state.apiG2Name)}`)
+        ]);
+        const [f1, f2] = await Promise.all([r1.json(), r2.json()]);
+
+        const getHtml = (name, f) => `
+          <div class="mb-4 last:mb-0">
+             <div class="font-bold text-text1 text-xs mb-1 uppercase tracking-wide">${name}</div>
+             <div class="text-sm text-text2 border-l-2 ${f.riskLevel==='high'?'border-danger':'border-success'} pl-2">${f.message}</div>
+          </div>
+        `;
+        document.getElementById('ai-forecast-content').innerHTML = getHtml(state.apiG1Name, f1) + getHtml(state.apiG2Name, f2);
+      } catch(e) { document.getElementById('ai-forecast-content').innerHTML = "API қолжетімсіз."; }
+    }
+
+    function renderApiChart() {
+      var trace1 = { y: state.apiData1.map(d => parseFloat(d.value)), type: 'box', name: '1-Топ', marker: { color: '#0284c7' }, boxpoints: 'Outliers' };
+      var trace2 = { y: state.apiData2.map(d => parseFloat(d.value)), type: 'box', name: '2-Топ', marker: { color: '#94a3b8' }, boxpoints: 'Outliers' };
+      var layout = { margin: { t: 10, b: 30, l: 40, r: 10 }, showlegend: false, paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: { color: '#64748b' } };
+      Plotly.newPlot('boxplot', [trace1, trace2], layout, { displayModeBar: false });
+    }
+
+    // ==========================================
+    // WORKFLOW B: CSV (Деректер салу)
+    // ==========================================
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]); });
+    function handleFileUpload(e) { if (e.target.files.length) processFile(e.target.files[0]); }
+
+    function processFile(file) {
+      if (!file.name.endsWith('.csv')) { alert("Тек .csv форматындағы файлдарды жүктеңіз."); return; }
+      Papa.parse(file, {
+        header: true, dynamicTyping: true, skipEmptyLines: true,
+        complete: function(results) {
+          if (results.data.length === 0) { alert("Файл бос."); return; }
+          csvParsedData = results.data;
+          const headers = Object.keys(csvParsedData[0]);
+          csvNumericColumns = headers.filter(h => {
+             const hLower = h.toLowerCase();
+             if (hLower.includes('date') || hLower.includes('күн') || hLower.includes('дата')) return false;
+             if (hLower.includes('location') || hLower.includes('аймақ') || hLower.includes('регион')) return false;
+             return csvParsedData.some(row => typeof row[h] === 'number');
+          });
+          if (csvNumericColumns.length === 0) { alert("Сандық көрсеткіштер табылған жоқ."); return; }
+          document.getElementById('file-name').innerText = file.name;
+          document.getElementById('file-stats').innerText = `${csvParsedData.length} жол, ${csvNumericColumns.length} көрсеткіш`;
+          document.getElementById('upload-status').classList.remove('hidden');
+        }
+      });
+    }
+
+    function generateCsvDashboard() {
+      if (csvNumericColumns.length === 0) return;
+      const tabs = document.getElementById('indicator-tabs');
+      tabs.innerHTML = csvNumericColumns.map((col, idx) => `<button class="chip ${idx === 0 ? 'active' : ''}" onclick="selectCsvIndicator('${col}', this)">${col}</button>`).join('');
+      csvCurrentIndicator = csvNumericColumns[0];
+      nav('screen-dashboard-csv');
+      renderCsvDashboard();
+    }
+
+    function selectCsvIndicator(col, element) {
+      csvCurrentIndicator = col;
+      document.querySelectorAll('#indicator-tabs .chip').forEach(c => c.classList.remove('active'));
+      element.classList.add('active');
+      renderCsvDashboard();
+    }
+
+    async function renderCsvDashboard() {
+      document.getElementById('current-csv-indicator-title').innerText = csvCurrentIndicator;
+      document.getElementById('csv-ai-content').innerHTML = '<i class="fa-solid fa-spinner fa-spin text-text4"></i> Талдануда...';
+      
+      const headers = Object.keys(csvParsedData[0]);
+      let dateCol = headers.find(h => h.toLowerCase().includes('date') || h.toLowerCase().includes('күн')) || headers[0];
+      
+      let validData = csvParsedData.filter(row => row[csvCurrentIndicator] !== null && row[csvCurrentIndicator] !== undefined)
+        .map(row => ({ date: row[dateCol] || 'Белгісіз', value: parseFloat(row[csvCurrentIndicator]) }));
+
+      if(validData.length === 0) return;
+
+      const values = validData.map(d => d.value);
+      const mean = jStat.mean(values), sd = jStat.stdev(values, true) || 1, max = Math.max(...values), min = Math.min(...values);
+
+      let anomaliesCount = 0;
+      validData = validData.map(d => {
+        const isAnomaly = Math.abs(d.value - mean) / sd > 2;
+        if(isAnomaly) anomaliesCount++;
+        return { ...d, isAnomaly };
+      });
+
+      document.getElementById('csv-stat-mean').innerText = mean.toFixed(2);
+      document.getElementById('csv-stat-max').innerText = max.toFixed(2);
+      document.getElementById('csv-table-count').innerText = `n=${validData.length}`;
+
+      document.getElementById('csv-data-tbody').innerHTML = validData.slice(0,50).map(d => `
+        <tr class="${d.isAnomaly ? 'anomaly-row' : ''}">
+          <td class="font-mono text-xs">${d.date}</td>
+          <td class="font-bold">${d.value}</td>
+          <td>${d.isAnomaly ? `<span class="text-danger text-[10px] font-bold uppercase"><i class="fa-solid fa-triangle-exclamation"></i> Ауытқу</span>` : `<span class="text-success text-[10px] font-bold uppercase"><i class="fa-solid fa-check"></i> Қалыпты</span>`}</td>
+        </tr>
+      `).join('');
+
+      var trace = { x: validData.map(d => d.date), y: validData.map(d => d.value), type: 'scatter', mode: 'lines+markers', line: { color: '#0284c7', width: 2 }, marker: { color: validData.map(d => d.isAnomaly ? '#ef4444' : '#0284c7'), size: validData.map(d => d.isAnomaly ? 8 : 4) } };
+      Plotly.newPlot('csv-chart-container', [trace], { margin: { t: 10, b: 40, l: 40, r: 10 }, paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: { color: '#64748b' } }, { displayModeBar: false });
+
+      try {
+        const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ indicator: csvCurrentIndicator, mean, max, min, anomaliesCount, totalCount: validData.length }) });
+        const aiJson = await res.json();
+        let riskColor = aiJson.riskLevel === 'жоғары' ? 'text-danger' : (aiJson.riskLevel === 'орташа' ? 'text-warning' : 'text-success');
+        document.getElementById('csv-ai-content').innerHTML = `<div class="mb-1 ${riskColor} font-bold text-xs uppercase tracking-wide">Қауіп: ${aiJson.riskLevel}</div><div class="text-text1 font-medium">${aiJson.message}</div>`;
+      } catch (e) { document.getElementById('csv-ai-content').innerHTML = `<span class="text-danger">AI сервері қолжетімсіз.</span>`; }
+    }
+
+    // ==========================================
+    // WORKFLOW C: History (Архив)
+    // ==========================================
+    function saveReport() {
+      if(!state.apiStats.p) return;
+      let history = JSON.parse(localStorage.getItem('baytaq_history') || '[]');
+      history.unshift({ id: Date.now(), date: new Date().toISOString().split('T')[0], indicator: state.apiIndicator, g1: state.apiG1Name, g2: state.apiG2Name, p: state.apiStats.p, d: state.apiStats.d });
+      localStorage.setItem('baytaq_history', JSON.stringify(history));
+      const btn = document.querySelector('.fa-bookmark').parentElement;
+      btn.innerHTML = '<i class="fa-solid fa-check text-primary"></i>';
+      setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-bookmark"></i>', 2000);
+    }
+
+    function renderHistory() {
+      let history = JSON.parse(localStorage.getItem('baytaq_history') || '[]');
+      const container = document.getElementById('history-container');
+      if(history.length === 0) { container.innerHTML = `<p class="text-center text-text4 mt-10 font-mono text-sm">Архив бос.</p>`; return; }
+      container.innerHTML = history.map(h => `
+        <div class="card p-4 relative">
+          <i class="fa-solid fa-xmark absolute right-4 top-4 text-text4 hover:text-danger cursor-pointer transition" onclick="deleteHistory(${h.id})"></i>
+          <div class="font-bold text-text1 mb-1 text-base">${h.indicator}</div>
+          <div class="text-xs text-text3 mb-3">${h.g1} vs ${h.g2}</div>
+          <div class="flex justify-between items-center mt-3 pt-3 border-t border-border1">
+            <span class="text-[10px] text-text4 font-mono">${h.date}</span>
+            <div class="chip bg-surface2 text-text2">p=${h.p}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function deleteHistory(id) {
+      let history = JSON.parse(localStorage.getItem('baytaq_history') || '[]');
+      localStorage.setItem('baytaq_history', JSON.stringify(history.filter(h => h.id !== id)));
+      renderHistory();
+    }
+
+    function exportToPDF(elementId) {
+      const element = document.getElementById(elementId);
+      html2pdf().set({ margin: 10, filename: `Baytaq_Report.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save();
+    }
+  </script>
+</body>
+</html>
