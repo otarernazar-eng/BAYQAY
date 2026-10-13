@@ -1,6 +1,6 @@
 /**
  * BAYQAY — Шайыр картасы, Шайыр тарихы, Мұра, BAYQAY Analytics.
- * Деректер: js/bayqay-data.js (window.BAYQAY_DATA). Қолданыстағы nav() функциясын кеңейтеді.
+ * Деректер: js/bayqay-data.js (window.BAYQAY_DATA).
  */
 (function () {
   'use strict';
@@ -22,11 +22,12 @@
 
   function sourceBadge(verified) {
     return verified
-      ? '<span class="bq-badge ok"><i class="fa-solid fa-circle-check"></i> Расталған</span>'
-      : '<span class="bq-badge pending"><i class="fa-solid fa-clock"></i> Дерек расталуда</span>';
+      ? '<span class="bq-badge ok"><i class="fa-solid fa-circle-check"></i> Дереккөзбен расталған</span>'
+      : '<span class="bq-badge pending"><i class="fa-solid fa-clock"></i> Дерек нақтылануда</span>';
   }
+
   const mockBadge = () =>
-    D.showMockBadges ? '<span class="bq-badge mock">мок-дерек</span>' : '';
+    D.showMockBadges ? '<span class="bq-badge mock">Зерттеу дерегі</span>' : '';
 
   /* ---------- Bottom nav ---------- */
   function renderNavs() {
@@ -59,7 +60,10 @@
         (h) => `
       <div class="bq-card bq-item" onclick="bqOpenHeritage('${h.id}')">
         <img src="${esc(h.photo)}" alt="${esc(h.name)}" style="object-position:${esc(h.photoPos || 'center')}">
-        <div class="grow"><b>${esc(h.name)}</b><small>${esc(h.type)}</small></div>
+        <div class="grow">
+          <b>${esc(h.name)}</b>
+          <small>${esc(h.type)}${h.period ? ` • ${esc(h.period)}` : ''}</small>
+        </div>
         <i class="fa-solid fa-chevron-right"></i>
       </div>`
       )
@@ -69,15 +73,56 @@
   window.bqOpenHeritage = function (id) {
     const h = byId(id);
     if (!h) return;
+
+    const factsHtml = h.facts && h.facts.length ? `
+      <div class="bq-card" style="padding:12px 14px;margin:14px 0;background:#fbfaf6;">
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px;text-transform:uppercase;color:var(--bq-muted);letter-spacing:0.04em;">
+          <i class="fa-solid fa-list-check" style="margin-right:4px;"></i> Негізгі фактілер
+        </div>
+        ${h.facts.map(([k,v]) => `
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:5px 0;border-bottom:1px dashed var(--bq-line);">
+            <span style="color:var(--bq-muted);flex-shrink:0;">${esc(k)}</span>
+            <b style="text-align:right;color:var(--bq-text);">${esc(v)}</b>
+          </div>`).join('')}
+      </div>` : '';
+
+    const sourcesHtml = h.sources && h.sources.length ? `
+      <div style="margin-top:6px;display:flex;flex-direction:column;gap:5px;">
+        ${h.sources.map(s => s.u ? `
+          <a href="${esc(s.u)}" target="_blank" rel="noopener" style="color:var(--bq-green);font-size:11.5px;text-decoration:underline;display:inline-flex;align-items:center;gap:5px;line-height:1.4;">
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i> ${esc(s.t)}
+          </a>` : `<span style="color:var(--bq-muted);font-size:11.5px;line-height:1.4;">${esc(s.t)}</span>`).join('')}
+      </div>` : `<b>${esc(h.source)}</b>`;
+
+    const noteHtml = h.note ? `
+      <div class="bq-card" style="padding:10px 12px;margin:12px 0;background:#fff8ee;border-color:#f6d9aa;font-size:11.5px;color:#854d0e;line-height:1.45;">
+        <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i> ${esc(h.note)}
+      </div>` : '';
+
+    const photoCreditHtml = h.photoCredit ? `
+      <div style="font-size:10.5px;color:var(--bq-muted);margin:-8px 0 12px;line-height:1.35;">
+        ${h.photoCreditUrl ? `<a href="${esc(h.photoCreditUrl)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">${esc(h.photoCredit)}</a>` : esc(h.photoCredit)}
+      </div>` : (h.photoPlaceholder ? `<div style="font-size:10.5px;color:var(--bq-muted);margin:-8px 0 12px;font-style:italic;">(Көрнекі фотосурет)</div>` : '');
+
     $('bq-heritage-detail').innerHTML = `
       <img class="bq-photo" src="${esc(h.photo)}" alt="${esc(h.name)}" style="object-position:${esc(h.photoPos || 'center')}">
+      ${photoCreditHtml}
       <h2>${esc(h.name)}</h2>
-      <span class="bq-pill">${esc(h.type)}</span> ${mockBadge()}
-      <p>${esc(h.history)}</p>
-      <div class="bq-info"><i class="fa-solid fa-star"></i><div><small>Маңызы</small><b>${esc(h.significance)}</b></div></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0 10px;">
+        <span class="bq-pill">${esc(h.type)}</span>
+        ${h.period ? `<span class="bq-pill" style="background:#f4ede2;color:#785428;">${esc(h.period)}</span>` : ''}
+        ${sourceBadge(h.verified)}
+      </div>
+      <p style="font-size:13.5px;line-height:1.6;color:#2b3a32;margin:10px 0 14px;">${esc(h.history)}</p>
+      ${factsHtml}
+      <div class="bq-info"><i class="fa-solid fa-star"></i><div><small>Нысанның тарихи маңызы</small><b>${esc(h.significance)}</b></div></div>
       <div class="bq-info"><i class="fa-solid fa-location-dot"></i><div><small>Орналасуы</small><b>${esc(h.location)}</b></div></div>
-      <div class="bq-info"><i class="fa-solid fa-file-lines"></i><div><small>Дереккөзі</small><b>${esc(h.source)}</b><div style="margin-top:4px">${sourceBadge(h.verified)}</div></div></div>
-      <button class="bq-btn" style="margin-top:8px" onclick="bqShowOnMap('${h.id}')">Картада қарау <i class="fa-solid fa-arrow-right"></i></button>`;
+      <div class="bq-info"><i class="fa-solid fa-book-bookmark"></i><div><small>Дереккөздер мен құжаттар</small>${sourcesHtml}</div></div>
+      ${noteHtml}
+      <button class="bq-btn" style="margin-top:12px" onclick="bqShowOnMap('${h.id}')">
+        <i class="fa-solid fa-map-location-dot"></i> Картада қарау
+      </button>`;
+
     window.nav('screen-heritage-detail');
     $('screen-heritage-detail').scrollTop = 0;
   };
@@ -86,12 +131,24 @@
   function renderTimeline() {
     $('bq-timeline').innerHTML = D.timeline
       .map(
-        (t) => `
+        (t) => {
+          const sourcesList = t.sources && t.sources.length
+            ? t.sources.map(s => s.u
+                ? `<a href="${esc(s.u)}" target="_blank" rel="noopener" style="color:var(--bq-green);text-decoration:underline;">${esc(s.t)}</a>`
+                : esc(s.t)
+              ).join(' • ')
+            : esc(t.source || '');
+          return `
       <div class="bq-tl-item ${t.verified ? '' : 'pending'}">
         <div class="bq-tl-date">${esc(t.date)}</div>
+        <b style="display:block;font-size:14px;margin-bottom:4px;color:var(--bq-text);">${esc(t.title)}</b>
         <p class="bq-tl-text">${esc(t.text)}</p>
-        <div class="bq-tl-src"><span><i class="fa-solid fa-file-lines"></i> ${esc(t.source)}</span> ${sourceBadge(t.verified)}</div>
-      </div>`
+        <div class="bq-tl-src">
+          <span><i class="fa-solid fa-file-lines"></i> ${sourcesList}</span>
+          ${sourceBadge(t.verified)}
+        </div>
+      </div>`;
+        }
       )
       .join('');
   }
@@ -124,7 +181,7 @@
       <img src="${esc(h.photo)}" alt="${esc(h.name)}" style="object-position:${esc(h.photoPos || 'center')}">
       <div style="flex:1;min-width:0">
         <h4>${esc(h.name)}</h4>
-        <small style="color:var(--bq-muted);font-size:10.5px">${esc(h.type)}</small>
+        <small style="color:var(--bq-muted);font-size:10.5px">${esc(h.type)}${h.period ? ` (${esc(h.period)})` : ''}</small>
         <p>${esc(h.short)}</p>
         <button class="bq-btn bq-btn-outline" onclick="bqOpenHeritage('${h.id}')">Толығырақ <i class="fa-solid fa-arrow-right"></i></button>
       </div>`;
@@ -149,7 +206,7 @@
     renderChips();
     if (map) { map.invalidateSize(); return; }
     if (!window.L) {
-      $('bq-map').innerHTML = '<div class="bq-map-fallback">Картаны жүктеу үшін интернет қажет.</div>';
+      $('bq-map').innerHTML = '<div class="bq-map-fallback">Картаны жүктеу үшін интернет байланысы қажет.</div>';
       return;
     }
     map = L.map('bq-map', { zoomControl: false }).setView(D.mapCenter, D.mapZoom);
@@ -158,12 +215,26 @@
       attribution: 'Tiles © Esri',
     }).addTo(map);
     L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Ауыл орталығының маркері
+    if (D.village && D.village.coords) {
+      const vIcon = L.divIcon({
+        className: 'bq-village-pin',
+        html: '<div style="background:#1f3d33;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:1px solid #fff;"><i class="fa-solid fa-house" style="font-size:9px;"></i> Шайыр</div>',
+        iconSize: [60, 20],
+        iconAnchor: [30, 10],
+      });
+      L.marker(D.village.coords, { icon: vIcon, title: 'Шайыр ауылы' })
+        .addTo(map)
+        .bindPopup('<b>Шайыр ауылы</b><br>Маңғыстау ауданы, Шайыр ауылдық округі орталығы');
+    }
+
     D.heritage.forEach((h) => {
       markers[h.id] = L.marker(h.coords, { icon: pinIcon(false), title: h.name })
         .addTo(map)
         .on('click', () => window.bqSelectOnMap(h.id, false));
     });
-    map.fitBounds(L.latLngBounds(D.heritage.map((h) => h.coords)).pad(0.4));
+    map.fitBounds(L.latLngBounds(D.heritage.map((h) => h.coords)).pad(0.35));
   }
 
   /* ---------- Analytics ---------- */
@@ -247,7 +318,7 @@
     originalNav(screenId);
     const scr = $(screenId);
     if (scr && scr.scrollTo) scr.scrollTop = 0;
-    if (screenId === 'screen-map') setTimeout(initMap, 30);
+    if (screenId === 'screen-map') setTimeout(initMap, 40);
     if (screenId === 'screen-analytics') { resetAnalyticsAnim(); setTimeout(animateAnalytics, 40); }
   };
 
