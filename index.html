@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>BAYTAQ - Экологиялық аналитика</title>
+  <title>BAYQAY - Шайыр мұрасы және экологиялық аналитика</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/bayqay.css">
   
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -146,9 +148,10 @@
     </div>
 
     <!-- Screen 1: Indicators (Аналитика) -->
-    <div id="screen-indicators" class="screen active">
+    <div id="screen-indicators" class="screen">
       <div class="header">
-        <div class="font-bold text-text1 tracking-tight text-lg">Көрсеткіштер</div>
+        <button onclick="nav('screen-home')" class="text-text3 hover:text-text1 transition mr-3" title="Басты бет"><i class="fa-solid fa-house"></i></button>
+        <div class="font-bold text-text1 tracking-tight text-lg flex-1">Көрсеткіштер</div>
         <button onclick="showInfo('Ақпарат', 'BAYTAQ веб-сервисі Каспий теңізінің экологиялық параметрлерін статистикалық бағалауға арналған.')" class="text-primary hover:text-primaryHover transition text-xl"><i class="fa-solid fa-circle-info"></i></button>
       </div>
       
@@ -475,6 +478,132 @@
         <div class="nav-item" onclick="nav('screen-upload')"><i class="fa-solid fa-cloud-arrow-up text-[20px] mb-1"></i> <span>Деректер салу</span></div>
         <div class="nav-item active"><i class="fa-solid fa-clock-rotate-left text-[20px] mb-1"></i> <span>Архив</span></div>
       </div>
+    </div>
+
+    <!-- ============ BAYQAY screens ============ -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <symbol id="bq-logo" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M4 40 L19 14 L26 26 L31 19 L44 40 Z"/><path d="M19 14 L22 20 L17 22"/>
+      </symbol>
+    </svg>
+
+    <!-- Splash -->
+    <div id="screen-splash" class="screen bq-screen">
+      <div class="bq-logo-big">
+        <svg><use href="#bq-logo"/></svg>
+        <h1>BAYQAY</h1>
+        <p>Шайырдың тарихи-мәдени мұрасын цифрлық зерттеу жүйесі</p>
+      </div>
+      <button class="bq-btn" onclick="bqStart()">Бастау <i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+
+    <!-- Home -->
+    <div id="screen-home" class="screen bq-screen">
+      <div class="bq-header">
+        <div class="bq-brand"><svg><use href="#bq-logo"/></svg> BAYQAY</div>
+        <div class="bq-spacer"></div>
+        <button class="bq-icon-btn" title="Экологиялық аналитика" onclick="nav('screen-indicators')"><i class="fa-solid fa-bars"></i></button>
+      </div>
+      <div class="bq-hero" id="bq-home-hero"><p>Шайыр — тарихы терең, болашағы жарқын өлке</p></div>
+      <div class="bq-tiles">
+        <div class="bq-tile" onclick="nav('screen-map')"><i class="fa-solid fa-map-location-dot"></i><b>Шайыр картасы</b><span>Елді мекендер мен тарихи нысандар</span></div>
+        <div class="bq-tile" onclick="nav('screen-timeline')"><i class="fa-solid fa-book-open"></i><b>Шайыр тарихы</b><span>Ауылдың қалыптасу кезеңдері</span></div>
+        <div class="bq-tile" onclick="nav('screen-heritage')"><i class="fa-solid fa-landmark"></i><b>Мұра</b><span>Тарихи-мәдени нысандар</span></div>
+        <div class="bq-tile" onclick="nav('screen-analytics')"><i class="fa-solid fa-chart-column"></i><b>BAYQAY Analytics</b><span>Дерек мен талдау</span></div>
+      </div>
+      <div class="bq-card bq-link-row" onclick="nav('screen-indicators')">
+        <i class="fa-solid fa-water"></i>
+        <div class="grow"><b>Экологиялық аналитика</b><small>Каспий теңізінің су сапасы (BAYTAQ)</small></div>
+        <i class="fa-solid fa-chevron-right" style="font-size:12px;color:var(--bq-muted)"></i>
+      </div>
+      <div style="flex:1"></div>
+      <div class="bq-nav" data-active="home"></div>
+    </div>
+
+    <!-- Map -->
+    <div id="screen-map" class="screen bq-screen">
+      <div class="bq-header">
+        <button class="bq-icon-btn" onclick="nav('screen-home')"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="bq-brand"><svg><use href="#bq-logo"/></svg> BAYQAY</div>
+      </div>
+      <div class="bq-body">
+        <h2 class="bq-title">Шайыр картасы</h2>
+        <p class="bq-sub">Тарихи-мәдени нысандар мен табиғи ескерткіштерді интерактивті картадан қараңыз.</p>
+        <div class="bq-map-wrap">
+          <div id="bq-map"></div>
+          <div class="bq-map-card bq-card" id="bq-map-card"></div>
+        </div>
+        <div class="bq-chips" id="bq-map-chips"></div>
+      </div>
+      <div class="bq-nav" data-active="map"></div>
+    </div>
+
+    <!-- Timeline -->
+    <div id="screen-timeline" class="screen bq-screen">
+      <div class="bq-header">
+        <button class="bq-icon-btn" onclick="nav('screen-home')"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="bq-brand"><svg><use href="#bq-logo"/></svg> BAYQAY</div>
+      </div>
+      <div class="bq-body">
+        <h2 class="bq-title">Шайыр тарихы</h2>
+        <p class="bq-sub">Даталар тек дереккөзбен расталған жағдайда ғана «расталған» деп белгіленеді.</p>
+        <div class="bq-tl" id="bq-timeline"></div>
+      </div>
+      <div class="bq-nav" data-active="home"></div>
+    </div>
+
+    <!-- Heritage list -->
+    <div id="screen-heritage" class="screen bq-screen">
+      <div class="bq-header">
+        <button class="bq-icon-btn" onclick="nav('screen-home')"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="bq-brand"><svg><use href="#bq-logo"/></svg> BAYQAY</div>
+      </div>
+      <div class="bq-body">
+        <h2 class="bq-title">Мұра</h2>
+        <p class="bq-sub">Шайыр өңірінің тарихи-мәдени мұрасымен танысыңыз.</p>
+        <div class="bq-list" id="bq-heritage-list"></div>
+      </div>
+      <div class="bq-nav" data-active="heritage"></div>
+    </div>
+
+    <!-- Heritage detail -->
+    <div id="screen-heritage-detail" class="screen bq-screen">
+      <div class="bq-header">
+        <button class="bq-icon-btn" onclick="nav('screen-heritage')"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="bq-brand"><svg><use href="#bq-logo"/></svg> BAYQAY</div>
+      </div>
+      <div class="bq-body bq-detail" id="bq-heritage-detail"></div>
+      <div class="bq-nav" data-active="heritage"></div>
+    </div>
+
+    <!-- Analytics -->
+    <div id="screen-analytics" class="screen bq-screen">
+      <div class="bq-header">
+        <button class="bq-icon-btn" onclick="nav('screen-home')"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="bq-brand"><svg><use href="#bq-logo"/></svg> BAYQAY</div>
+      </div>
+      <div class="bq-body">
+        <h2 class="bq-title">BAYQAY Analytics</h2>
+        <p class="bq-sub">Сауалнаманың нәтижелері және негізгі көрсеткіштер.</p>
+        <div class="bq-rings" id="bq-rings"></div>
+        <div class="bq-h3">Жұмысқа қатысатындар</div>
+        <div id="bq-participants"></div>
+        <button class="bq-btn" style="margin-top:18px" onclick="nav('screen-analytics-full')">Толық талдау <i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+      <div class="bq-nav" data-active="analytics"></div>
+    </div>
+
+    <!-- Analytics: full -->
+    <div id="screen-analytics-full" class="screen bq-screen">
+      <div class="bq-header">
+        <button class="bq-icon-btn" onclick="nav('screen-analytics')"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="bq-brand"><svg><use href="#bq-logo"/></svg> BAYQAY</div>
+      </div>
+      <div class="bq-body">
+        <h2 class="bq-title">Толық талдау</h2>
+        <div id="bq-questions" style="margin-top:14px"></div>
+      </div>
+      <div class="bq-nav" data-active="analytics"></div>
     </div>
 
   </div>
@@ -812,5 +941,8 @@
       html2pdf().set({ margin: 10, filename: `Baytaq_Report.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save();
     }
   </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/bayqay-data.js"></script>
+  <script src="js/bayqay.js"></script>
 </body>
 </html>
